@@ -1,12 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
 
 # Page Config
 st.set_page_config(page_title="Spotify Dashboard", layout="wide")
 
 # Title
 st.title("🎵 Spotify Data Dashboard")
+
 
 @st.cache_data
 def load_data():
