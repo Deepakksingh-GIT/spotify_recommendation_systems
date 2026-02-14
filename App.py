@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import os
 
-# -------------------- PAGE CONFIG -------------------- #
-st.set_page_config(page_title="Spotify Dashboard", layout="wide")
-st.title("🎵 Spotify Data Dashboard")
+# ---------------- PAGE CONFIG ---------------- #
+st.set_page_config(page_title="Spotify Recommendation Dashboard", layout="wide")
+st.title("🎵 Spotify Recommendation Dashboard")
 
-# -------------------- LOAD DATA -------------------- #
+# ---------------- LOAD DATA ---------------- #
 @st.cache_data
 def load_data():
     try:
@@ -16,11 +15,9 @@ def load_data():
         elif os.path.exists("spotify.xls"):
             df = pd.read_excel("spotify.xls")
         else:
-            st.error("❌ No dataset file found (spotify.csv or spotify.xls)")
+            st.error("❌ No dataset found (spotify.csv or spotify.xls)")
             st.stop()
 
-        # Clean column names
-        df.columns = df.columns.str.strip().str.lower()
         return df
 
     except Exception as e:
@@ -29,64 +26,52 @@ def load_data():
 
 df = load_data()
 
-# -------------------- REQUIRED COLUMNS CHECK -------------------- #
-required_cols = ["artist", "popularity", "danceability", "energy"]
+# ---------------- CLEAN DATA ---------------- #
+# Remove unnamed index column if exists
+df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
-missing_cols = [col for col in required_cols if col not in df.columns]
+# Convert all column names to string
+df.columns = df.columns.astype(str)
 
-if missing_cols:
-    st.error(f"❌ Required column(s) {missing_cols} not found in dataset!")
-    st.write("### Available columns:")
-    st.write(list(df.columns))
-    st.stop()
-
-# -------------------- SIDEBAR FILTER -------------------- #
-st.sidebar.header("Filter Options")
-
-artist = st.sidebar.multiselect(
-    "Select Artist",
-    options=sorted(df["artist"].unique()),
-    default=sorted(df["artist"].unique())
-)
-
-df_filtered = df[df["artist"].isin(artist)]
-
-# -------------------- KPI SECTION -------------------- #
+# ---------------- KPIs ---------------- #
 st.markdown("## 📊 Key Performance Indicators")
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3 = st.columns(3)
 
-col1.metric("Total Songs", len(df_filtered))
-col2.metric("Total Artists", df_filtered["artist"].nunique())
-col3.metric("Avg Popularity", round(df_filtered["popularity"].mean(), 2))
-col4.metric("Avg Danceability", round(df_filtered["danceability"].mean(), 2))
+col1.metric("Total Songs", df.shape[1])
+col2.metric("Total Users / Rows", df.shape[0])
+col3.metric("Total Data Points", df.size)
 
 st.markdown("---")
 
-# -------------------- CHARTS -------------------- #
-col1, col2 = st.columns(2)
+# ---------------- SONG SELECTOR ---------------- #
+st.markdown("## 🎧 Get Recommendations")
 
-with col1:
-    fig1 = px.bar(
-        df_filtered.groupby("artist")["popularity"].mean().reset_index(),
-        x="artist",
-        y="popularity",
-        title="Average Popularity by Artist",
-        color="artist"
-    )
-    st.plotly_chart(fig1, use_container_width=True)
+song_list = list(df.columns)
 
-with col2:
-    fig2 = px.scatter(
-        df_filtered,
-        x="danceability",
-        y="energy",
-        color="artist",
-        size="popularity",
-        title="Danceability vs Energy"
-    )
-    st.plotly_chart(fig2, use_container_width=True)
+selected_song = st.selectbox(
+    "Select a Song",
+    song_list
+)
 
-# -------------------- DATA PREVIEW -------------------- #
+# ---------------- RECOMMENDATION LOGIC ---------------- #
+# Assuming matrix similarity structure
+if selected_song:
+
+    try:
+        recommendations = (
+            df[selected_song]
+            .sort_values(ascending=False)
+            .head(10)
+        )
+
+        st.markdown(f"### 🔥 Top Recommendations for: {selected_song}")
+
+        st.table(recommendations)
+
+    except Exception as e:
+        st.error(f"Error generating recommendations: {e}")
+
+# ---------------- DATA PREVIEW ---------------- #
 st.markdown("### 📂 Dataset Preview")
-st.dataframe(df_filtered)
+st.dataframe(df)
