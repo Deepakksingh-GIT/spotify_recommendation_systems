@@ -60,9 +60,17 @@ col1, col2, col3, col4 = st.columns(4)
 col1.metric("🎵 Total Songs", df.shape[1])
 col2.metric("👥 Total Users / Rows", df.shape[0])
 col3.metric("📊 Total Data Points", df.size)
-col4.metric("📈 Avg Similarity Score", round(df.mean().mean(), 4))
 
-st.markdown("---")
+# Select only numeric columns
+numeric_df = df.select_dtypes(include="number")
+
+if not numeric_df.empty:
+    avg_similarity = round(numeric_df.mean().mean(), 4)
+else:
+    avg_similarity = 0
+
+col4.metric("📈 Avg Similarity Score", avg_similarity)
+
 
 # ---------------- SEARCH + SLIDER ---------------- #
 st.markdown("## 🎧 Get Song Recommendations")
