@@ -12,9 +12,9 @@ import os
 
 @st.cache_data
 def load_data():
-    file_path = os.path.join(os.path.dirname(__file__), "spotify.xls")
-    df = pd.read_excel(file_path)
+    df = pd.read_csv("spotify.csv")
     return df
+
 
 df = load_data()
 
