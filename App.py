@@ -3,103 +3,78 @@ import pandas as pd
 import plotly.express as px
 import os
 
-# ================= PAGE CONFIG ================= #
+# -------------------- PAGE CONFIG -------------------- #
 st.set_page_config(page_title="Spotify Dashboard", layout="wide")
-
 st.title("🎵 Spotify Data Dashboard")
 
-# ================= LOAD DATA ================= #
-
+# -------------------- LOAD DATA -------------------- #
 @st.cache_data
 def load_data():
-    base_path = os.path.dirname(__file__)
-
-    csv_path = os.path.join(base_path, "spotify.csv")
-    xls_path = os.path.join(base_path, "spotify.xls")
-
     try:
-        if os.path.exists(csv_path):
-            df = pd.read_csv(csv_path)
-        elif os.path.exists(xls_path):
-            df = pd.read_excel(xls_path)
+        if os.path.exists("spotify.csv"):
+            df = pd.read_csv("spotify.csv")
+        elif os.path.exists("spotify.xls"):
+            df = pd.read_excel("spotify.xls")
         else:
-            st.error("Dataset file not found!")
+            st.error("❌ No dataset file found (spotify.csv or spotify.xls)")
             st.stop()
 
-        if df.empty:
-            st.error("Dataset file is empty!")
-            st.stop()
-
-        # Clean column names (VERY IMPORTANT)
+        # Clean column names
         df.columns = df.columns.str.strip().str.lower()
-
         return df
 
     except Exception as e:
-        st.error(f"Error loading dataset: {e}")
+        st.error(f"Error loading file: {e}")
         st.stop()
-
 
 df = load_data()
 
-# ================= REQUIRED COLUMN CHECK ================= #
+# -------------------- REQUIRED COLUMNS CHECK -------------------- #
+required_cols = ["artist", "popularity", "danceability", "energy"]
 
-required_columns = ["artist", "popularity", "danceability", "energy"]
+missing_cols = [col for col in required_cols if col not in df.columns]
 
-for col in required_columns:
-    if col not in df.columns:
-        st.error(f"Required column '{col}' not found in dataset!")
-        st.write("Available columns:", df.columns)
-        st.stop()
+if missing_cols:
+    st.error(f"❌ Required column(s) {missing_cols} not found in dataset!")
+    st.write("### Available columns:")
+    st.write(list(df.columns))
+    st.stop()
 
-# ================= SIDEBAR FILTER ================= #
-
+# -------------------- SIDEBAR FILTER -------------------- #
 st.sidebar.header("Filter Options")
 
 artist = st.sidebar.multiselect(
     "Select Artist",
-    options=sorted(df["artist"].dropna().unique()),
-    default=sorted(df["artist"].dropna().unique())
+    options=sorted(df["artist"].unique()),
+    default=sorted(df["artist"].unique())
 )
 
 df_filtered = df[df["artist"].isin(artist)]
 
-# ================= KPIs ================= #
+# -------------------- KPI SECTION -------------------- #
+st.markdown("## 📊 Key Performance Indicators")
 
 col1, col2, col3, col4 = st.columns(4)
 
-with col1:
-    st.metric("Total Songs", len(df_filtered))
-
-with col2:
-    st.metric("Total Artists", df_filtered["artist"].nunique())
-
-with col3:
-    st.metric(
-        "Avg Popularity",
-        round(df_filtered["popularity"].mean(), 2)
-    )
-
-with col4:
-    st.metric(
-        "Avg Danceability",
-        round(df_filtered["danceability"].mean(), 2)
-    )
+col1.metric("Total Songs", len(df_filtered))
+col2.metric("Total Artists", df_filtered["artist"].nunique())
+col3.metric("Avg Popularity", round(df_filtered["popularity"].mean(), 2))
+col4.metric("Avg Danceability", round(df_filtered["danceability"].mean(), 2))
 
 st.markdown("---")
 
-# ================= CHARTS ================= #
-
+# -------------------- CHARTS -------------------- #
 col1, col2 = st.columns(2)
 
 with col1:
-    fig = px.bar(
+    fig1 = px.bar(
         df_filtered.groupby("artist")["popularity"].mean().reset_index(),
         x="artist",
         y="popularity",
-        title="Average Popularity by Artist"
+        title="Average Popularity by Artist",
+        color="artist"
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig1, use_container_width=True)
 
 with col2:
     fig2 = px.scatter(
@@ -107,11 +82,11 @@ with col2:
         x="danceability",
         y="energy",
         color="artist",
+        size="popularity",
         title="Danceability vs Energy"
     )
     st.plotly_chart(fig2, use_container_width=True)
 
-# ================= DATA PREVIEW ================= #
-
-st.markdown("### Dataset Preview")
+# -------------------- DATA PREVIEW -------------------- #
+st.markdown("### 📂 Dataset Preview")
 st.dataframe(df_filtered)
