@@ -8,10 +8,12 @@ st.set_page_config(page_title="Spotify Dashboard", layout="wide")
 # Title
 st.title("🎵 Spotify Data Dashboard")
 
-# Load Data
+import os
+
 @st.cache_data
 def load_data():
-    df = pd.read_excel("spotify.xls")
+    file_path = os.path.join(os.path.dirname(__file__), "spotify.xls")
+    df = pd.read_excel(file_path)
     return df
 
 df = load_data()
