@@ -8,15 +8,22 @@ st.set_page_config(page_title="Spotify Dashboard", layout="wide")
 # Title
 st.title("🎵 Spotify Data Dashboard")
 
-import os
-
 @st.cache_data
 def load_data():
-    df = pd.read_csv("spotify.csv")
-    return df
+    base_path = os.path.dirname(__file__)
 
+    if os.path.exists(os.path.join(base_path, "spotify.csv")):
+        return pd.read_csv(os.path.join(base_path, "spotify.csv"))
+
+    elif os.path.exists(os.path.join(base_path, "spotify.xls")):
+        return pd.read_excel(os.path.join(base_path, "spotify.xls"))
+
+    else:
+        st.error("Dataset file not found!")
+        st.stop()
 
 df = load_data()
+
 
 # Sidebar Filters
 st.sidebar.header("Filter Options")
